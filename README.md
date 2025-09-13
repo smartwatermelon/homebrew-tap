@@ -5,7 +5,7 @@ Custom Homebrew tap for macOS development tools and utilities.
 ## Installation
 
 ```bash
-brew tap andrewrich/tap
+brew tap smartwatermelon/tap
 ```
 
 ## Available Casks
