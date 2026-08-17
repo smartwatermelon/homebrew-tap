@@ -15,21 +15,31 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Homebrew
         run: |
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
 
+      # Homebrew now refuses to load formulae/casks from third-party taps until
+      # the tap is explicitly trusted, so tap + trust must both happen before
+      # anything tries to evaluate a cask in this repo.
+      - name: Tap and trust this repo
+        run: |
+          brew tap smartwatermelon/tap .
+          brew trust --tap smartwatermelon/tap
+
+      # `brew cask audit` was removed years ago (the flag form replaced it), and
+      # `brew audit <path.rb>` is now disabled in favour of passing names. Auditing
+      # by tap covers every cask here without enumerating filenames. No `|| true`:
+      # a failing audit must fail the build, otherwise this step audits nothing.
       - name: Validate cask syntax
         run: |
-          for cask in Casks/*.rb; do
-            echo "Validating $cask"
-            brew cask audit --strict "$cask" || echo "Audit completed with warnings"
-          done
+          brew audit --tap smartwatermelon/tap --strict
 
       - name: Test cask installation (dry run)
         run: |
-          brew tap smartwatermelon/tap .
           # Don't actually install, just test that the cask can be parsed
-          brew info --cask progress-indicator
+          brew info --cask smartwatermelon/tap/progress-indicator
