@@ -11,8 +11,12 @@ permissions:
   id-token: write
 
 jobs:
+  # Floating @v3 so upstream security fixes reach this repo by a tag
+  # repoint in github-workflows, with no PR here. An exact pin is what
+  # silently opted repos out of GHSA-8q5r-mmjf-575q remediation for
+  # months. See smartwatermelon/dotfiles#196.
   claude-review:
-    uses: smartwatermelon/github-workflows/.github/workflows/claude-blocking-review.yml@v3.1.1
+    uses: smartwatermelon/github-workflows/.github/workflows/claude-blocking-review.yml@v3
     with:
       pr_number: ${{ github.event.pull_request.number }}
       model: "claude-haiku-4-5-20251001"
