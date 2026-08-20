@@ -19,9 +19,23 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Homebrew
+      # GitHub's macOS runners ship with Homebrew preinstalled, so the install
+      # below is only a fallback in case that ever stops being true. Guarding on
+      # `command -v brew` keeps it a no-op in the normal case; dropping the old
+      # `|| true` means a fallback install that genuinely fails now fails here,
+      # instead of surfacing as a cryptic error in a later `brew` step. The
+      # trailing `brew --version` proves the runner has a working brew before
+      # anything else depends on it.
+      - name: Ensure Homebrew is available
         run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+          if ! command -v brew >/dev/null 2>&1; then
+            # Download and run as two steps: inlining the curl in a command
+            # substitution would mask a download failure and then run an empty
+            # script, which "succeeds" while installing nothing.
+            curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o /tmp/install-homebrew.sh
+            /bin/bash /tmp/install-homebrew.sh
+          fi
+          brew --version
 
       # Homebrew now refuses to load formulae/casks from third-party taps until
       # the tap is explicitly trusted, so tap + trust must both happen before
