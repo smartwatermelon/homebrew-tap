@@ -9,10 +9,9 @@ cask "progress-indicator" do
 
   binary "ProgressIndicator"
 
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-rd", "com.apple.quarantine", "#{staged_path}/ProgressIndicator"],
-                   sudo: false
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-rd", "com.apple.quarantine", "{{staged_path}}/ProgressIndicator"]
   end
 
   # No uninstall stanza needed for simple binary
