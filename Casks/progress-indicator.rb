@@ -26,6 +26,18 @@ cask "progress-indicator" do
   #     at install time. The docs list `{{staged_path}}` as a supported token
   #     and prefer this explicit form in new steps.
   # https://docs.brew.sh/Cask-Cookbook#interpolation-in-steps-blocks
+  #
+  # Verified against Homebrew 6.0.22, not assumed. The failure mode worth
+  # ruling out was a silent no-op: a stanza Homebrew ignores would leave the
+  # binary quarantined while still "passing". It does not happen --
+  #   - `Cask::DSL::DSL_METHODS.include?(:postflight_steps)` => true, and
+  #     `Cask::Artifact::PostflightSteps.dsl_key` => :postflight_steps
+  #   - the loaded cask reports `PostflightSteps: 1 install step`, so the
+  #     stanza registers rather than being skipped
+  #   - end to end: seeding `com.apple.quarantine` on the staged binary and
+  #     running `brew reinstall --cask` removes it. Seeding first matters --
+  #     without a known-bad starting state, a clean result would also be
+  #     consistent with the step never running at all.
   postflight_steps do
     run "/usr/bin/xattr",
         args: ["-rd", "com.apple.quarantine", "{{staged_path}}/ProgressIndicator"]
