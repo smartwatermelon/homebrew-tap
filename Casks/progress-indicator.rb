@@ -4,7 +4,7 @@ cask "progress-indicator" do
 
   url "https://github.com/smartwatermelon/swift-progress-indicator/releases/download/v#{version}/ProgressIndicator-#{version}.tar.gz"
   name "ProgressIndicator"
-  desc "Lightweight macOS progress indicator that displays real-time updates from log files"
+  desc "Displays real-time progress updates from log files"
   homepage "https://github.com/smartwatermelon/swift-progress-indicator"
 
   binary "ProgressIndicator"
@@ -33,7 +33,5 @@ cask "progress-indicator" do
 
   # No uninstall stanza needed for simple binary
 
-  zap trash: [
-    "~/Library/Preferences/com.progressindicator.*",
-  ]
+  zap trash: "~/Library/Preferences/com.progressindicator.*"
 end
