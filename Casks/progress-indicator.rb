@@ -9,6 +9,23 @@ cask "progress-indicator" do
 
   binary "ProgressIndicator"
 
+  # Strips the quarantine flag Homebrew applies to cask downloads, so the
+  # binary runs without a Gatekeeper prompt. Intentional, and predates the
+  # migration below.
+  #
+  # Uses the declarative `postflight_steps` stanza, not the legacy `postflight`
+  # Ruby block, which Homebrew deprecated (it warns on every parse and asks
+  # users to report it to this tap).
+  # https://docs.brew.sh/Cask-Cookbook#stanza-flight_steps
+  #
+  # Two things here look wrong but are correct, per the docs:
+  #   - `run` is the steps-DSL call for a command; a steps block takes only
+  #     supported step calls, so `system_command` is not available inside it.
+  #   - `{{staged_path}}` is deliberately NOT Ruby `#{...}` interpolation. It
+  #     stays literal in the JSON API, and the install-step runner expands it
+  #     at install time. The docs list `{{staged_path}}` as a supported token
+  #     and prefer this explicit form in new steps.
+  # https://docs.brew.sh/Cask-Cookbook#interpolation-in-steps-blocks
   postflight_steps do
     run "/usr/bin/xattr",
         args: ["-rd", "com.apple.quarantine", "{{staged_path}}/ProgressIndicator"]
