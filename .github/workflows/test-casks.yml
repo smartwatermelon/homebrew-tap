@@ -37,6 +37,22 @@ jobs:
           fi
           brew --version
 
+      # The runner image ships Homebrew 6.x. Update, then fail below 7 or on an unparseable version.
+      - name: Update Homebrew and require 7.x
+        run: |
+          brew update
+          version_line="$(brew --version)"
+          echo "${version_line}"
+          major="$(sed -n '1s/^Homebrew \([0-9][0-9]*\)\..*/\1/p' <<<"${version_line}")"
+          if ! [[ "${major}" =~ ^[0-9]+$ ]]; then
+            echo "::error::could not parse the Homebrew major version from 'brew --version'"
+            exit 1
+          fi
+          if (( major < 7 )); then
+            echo "::error::Homebrew ${major}.x is installed; this workflow requires 7.0 or newer"
+            exit 1
+          fi
+
       # Homebrew now refuses to load formulae/casks from third-party taps until
       # the tap is explicitly trusted, so tap + trust must both happen before
       # anything tries to evaluate a cask in this repo.
