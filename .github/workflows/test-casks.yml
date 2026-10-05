@@ -37,6 +37,22 @@ jobs:
           fi
           brew --version
 
+      # The runner image ships Homebrew 6.x. Update, then fail below 7 or on an unparseable version.
+      - name: Update Homebrew and require 7.x
+        run: |
+          brew update
+          version_line="$(brew --version)"
+          echo "${version_line}"
+          major="$(sed -n '1s/^Homebrew \([0-9][0-9]*\)\..*/\1/p' <<<"${version_line}")"
+          if ! [[ "${major}" =~ ^[0-9]+$ ]]; then
+            echo "::error::could not parse the Homebrew major version from 'brew --version'"
+            exit 1
+          fi
+          if (( major < 7 )); then
+            echo "::error::Homebrew ${major}.x is installed; this workflow requires 7.0 or newer"
+            exit 1
+          fi
+
       # Homebrew now refuses to load formulae/casks from third-party taps until
       # the tap is explicitly trusted, so tap + trust must both happen before
       # anything tries to evaluate a cask in this repo.
@@ -53,7 +69,25 @@ jobs:
         run: |
           brew audit --tap smartwatermelon/tap --strict
 
-      - name: Test cask installation (dry run)
+      - name: Show cask info
         run: |
-          # Don't actually install, just test that the cask can be parsed
           brew info --cask smartwatermelon/tap/progress-indicator
+
+      # A real install, not `brew install --dry-run`: in Homebrew 7.0 the cask
+      # dry run only prints the install plan. It downloads nothing, so it
+      # cannot catch a wrong url or sha256, and it never runs postflight_steps.
+      # The runner is disposable, so installing costs only the download.
+      - name: Test cask installation
+        run: |
+          brew install --cask smartwatermelon/tap/progress-indicator
+          version="$(brew list --cask --versions progress-indicator | awk '{print $2}')"
+          test -n "${version}"
+          staged="$(brew --caskroom)/progress-indicator/${version}/ProgressIndicator"
+          test -x "${staged}"
+          # postflight_steps removes com.apple.quarantine. If Homebrew did not
+          # quarantine the download on this runner, this check passes without
+          # proving the step ran; it still fails if the attribute is left set.
+          if xattr -p com.apple.quarantine "${staged}" >/dev/null 2>&1; then
+            echo "::error::com.apple.quarantine still set on ${staged}; postflight_steps did not remove it"
+            exit 1
+          fi
