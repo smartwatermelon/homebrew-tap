@@ -53,7 +53,25 @@ jobs:
         run: |
           brew audit --tap smartwatermelon/tap --strict
 
-      - name: Test cask installation (dry run)
+      - name: Show cask info
         run: |
-          # Don't actually install, just test that the cask can be parsed
           brew info --cask smartwatermelon/tap/progress-indicator
+
+      # A real install, not `brew install --dry-run`: in Homebrew 7.0 the cask
+      # dry run only prints the install plan. It downloads nothing, so it
+      # cannot catch a wrong url or sha256, and it never runs postflight_steps.
+      # The runner is disposable, so installing costs only the download.
+      - name: Test cask installation
+        run: |
+          brew install --cask smartwatermelon/tap/progress-indicator
+          version="$(brew list --cask --versions progress-indicator | awk '{print $2}')"
+          test -n "${version}"
+          staged="$(brew --caskroom)/progress-indicator/${version}/ProgressIndicator"
+          test -x "${staged}"
+          # postflight_steps removes com.apple.quarantine. If Homebrew did not
+          # quarantine the download on this runner, this check passes without
+          # proving the step ran; it still fails if the attribute is left set.
+          if xattr -p com.apple.quarantine "${staged}" >/dev/null 2>&1; then
+            echo "::error::com.apple.quarantine still set on ${staged}; postflight_steps did not remove it"
+            exit 1
+          fi
